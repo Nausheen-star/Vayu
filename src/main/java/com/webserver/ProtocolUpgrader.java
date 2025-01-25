@@ -1,6 +1,6 @@
 package com.webserver;
 
-import io.netty.channel.ChannelPipeline;
+import io.netty.channel.*;
 
 // For future protocol support (HTTP/2, WebSockets, etc.).
 public class ProtocolUpgrader {
