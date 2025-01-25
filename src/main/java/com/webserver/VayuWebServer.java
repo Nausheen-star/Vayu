@@ -1,7 +1,10 @@
 package com.webserver;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -17,8 +20,20 @@ public class VayuWebServer {
 
     private static final Logger LOGGER = Logger.getLogger(VayuWebServer.class.getName());
     private final int port;
+
     public VayuWebServer(int port) {
         this.port = port;
+    }
+
+    public static void main(String[] args) {
+        try {
+            new VayuWebServer(8080).start();
+        } catch (InterruptedException e) {
+            LOGGER.log(Level.SEVERE, "Server interrupted", e);
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Fatal error: ", e);
+        }
     }
 
     // Start the server
@@ -53,11 +68,10 @@ public class VayuWebServer {
         }
     }
 
-
     private ChannelInitializer<SocketChannel> createChannelInitializer() {
         return new ChannelInitializer<>() {
             @Override
-            protected void initChannel(SocketChannel  channel) {
+            protected void initChannel(SocketChannel channel) {
                 ChannelPipeline pipeline = channel.pipeline();
                 pipeline.addLast("http-codec", new HttpServerCodec()); //  HTTP Codec: Decodes requests and encodes responses
                 // HTTP Object Aggregator: Aggregates multiple HTTP chunks into one full request/response
@@ -69,17 +83,4 @@ public class VayuWebServer {
             }
         };
     }
-
-
-    public static void main(String[] args) {
-        try {
-            new VayuWebServer(8080).start();
-        } catch (InterruptedException e) {
-            LOGGER.log(Level.SEVERE, "Server interrupted", e);
-            Thread.currentThread().interrupt();
-        }
-        catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Fatal error: ",e);
-        }
-    }
-    }
+}
