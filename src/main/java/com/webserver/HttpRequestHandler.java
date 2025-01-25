@@ -1,46 +1,75 @@
 package com.webserver;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
-
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
+import io.netty.util.CharsetUtil;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import static io.netty.handler.codec.http.HttpMethod.GET;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
-    private static final Logger LOGGER = Logger.getLogger(HttpRequestHandler.class.getName());
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
+    public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
         if (!request.decoderResult().isSuccess()) {
-            // Handle malformed HTTP requests
-            sendError(ctx, HttpResponseStatus.BAD_REQUEST);
+            sendError(ctx, BAD_REQUEST);
             return;
         }
 
-        if (!HttpMethod.GET.equals(request.method()) && !HttpMethod.POST.equals(request.method())) {
-
-            // Handle unsupported HTTP methods
+        // Only handle GET requests
+        if (!GET.equals(request.method())) {
             sendError(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED);
             return;
         }
 
-        FullHttpResponse response = ResponseGenerator.generateHttpResponse(request);
-        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-    }
+        // Check if "X-Data" header exists
+        String customData = request.headers().get("X-Data");
+        String responseMessage = "Hello from Vayu Web Server!";
 
-    private void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
-        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status);
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain");
-        response.content().writeBytes((status.toString() + "\n").getBytes());
-        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        if (customData != null && !customData.isEmpty()) {
+            responseMessage = "Received header X-Data: " + customData;
+        }
+
+        // Create the response
+        ByteBuf content = Unpooled.copiedBuffer(responseMessage, CharsetUtil.UTF_8);
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, OK, content);
+
+        // Set headers for the response
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
+        HttpUtil.setContentLength(response, content.readableBytes());
+
+        // Handle Keep-Alive connections
+        boolean keepAlive = HttpUtil.isKeepAlive(request);
+        if (!keepAlive) {
+            response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+        } else {
+            response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+        }
+
+        // Send the response and clean up
+        ChannelFuture flushPromise = ctx.writeAndFlush(response);
+        if (!keepAlive) {
+            flushPromise.addListener(ChannelFutureListener.CLOSE);
+        }
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        LOGGER.log(Level.SEVERE, "Unexpected error occurred", cause);
-        ctx.close();
+        cause.printStackTrace();
+        if (ctx.channel().isActive()) {
+            sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
+        ByteBuf content = Unpooled.copiedBuffer("Failure: " + status + "\r\n", CharsetUtil.UTF_8);
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content);
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
+
+        HttpUtil.setContentLength(response, content.readableBytes());
+        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 }
