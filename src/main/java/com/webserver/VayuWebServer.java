@@ -10,7 +10,6 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,20 +34,6 @@ public class VayuWebServer {
                     .group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class) // Use non-blocking server socket channel
                     .childHandler(createChannelInitializer());
-
-
-
-//            bootstrap
-//                    .option(ChannelOption.SO_BACKLOG, 1024) // Set backlog for the server socket.
-//                    .childOption(ChannelOption.SO_KEEPALIVE, true) // (transport layer) Enable TCP keep-alive for client connections. low-level TCP setting to manage idle TCP connections.
-//                    .childOption(ChannelOption.TCP_NODELAY, true)  // Disable Nagle's algorithm for better performance in small requests
-//                    .childOption(ChannelOption.SO_RCVBUF, 128 * 1024) // Default 32 KB Set socket receive buffer size
-//                    .childOption(ChannelOption.SO_SNDBUF, 128 * 1024) // Default 32 KB Set socket send buffer size
-//                    .childOption(ChannelOption.SO_LINGER, 0) // Disable socket lingering
-//                    .childOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000) // Set connection timeout (5 seconds)
-//                    .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK,
-//                            new WriteBufferWaterMark(32 * 1024, 64 * 1024));
-
 
             // Bind server to the specified port and wait for it to start
             Channel channel = bootstrap.bind(port).sync().channel();
@@ -78,16 +63,12 @@ public class VayuWebServer {
                 // HTTP Object Aggregator: Aggregates multiple HTTP chunks into one full request/response
                 pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
                 pipeline.addLast(new ChunkedWriteHandler());
-                // 4. IdleStateHandler: Handles read/write idle timeout
                 pipeline.addLast("http-compressor", new HttpContentCompressor()); // Enable Gzip/Deflate compression
                 pipeline.addLast("http-request-handler", new HttpRequestHandler());
-                // support for HTTP/1.1 Keep-Alive & other features
-//                pipeline.addLast("http-keep-alive", new HttpServerKeepAliveHandler()); // Application-level Keep-Alive support
 
             }
         };
     }
-
 
 
     public static void main(String[] args) {
