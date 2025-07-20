@@ -15,6 +15,21 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
+    /**
+     * Processes incoming HTTP requests, validating and responding based on predefined criteria.
+     * @example
+     * HttpRequestHandler handler = new HttpRequestHandler();
+     * handler.channelRead0(ctx, request);
+     * // If request is a valid GET with or without an "X-Data" header, processes and sends response.
+     * @param {ChannelHandlerContext} ctx - The context of the current HTTP request, used for interaction with the channel.
+     * @param {FullHttpRequest} request - The full HTTP request object containing details like headers and method.
+     * @return {void} - This method does not return a value directly but sends a response through the channel context.
+     * @description
+     *   - Handles requests only if they have been successfully decoded.
+     *   - Processes only GET requests; others result in METHOD_NOT_ALLOWED.
+     *   - Checks for a custom "X-Data" header, modifying response if present.
+     *   - Manages connection persistence via Keep-Alive headers.
+     */
     @Override
     public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
         if (!request.decoderResult().isSuccess()) {
