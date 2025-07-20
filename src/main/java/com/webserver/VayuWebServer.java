@@ -22,6 +22,18 @@ public class VayuWebServer {
     }
 
     // Start the server
+    /**
+     * Starts the Vayu Web Server which listens for client connections and handles network traffic.
+     * @example
+     * VayuWebServer server = new VayuWebServer(8080);
+     * server.start(); // Vayu Web Server started on port: 8080
+     * @throws {InterruptedException} - If the thread is interrupted while waiting for server operations to complete.
+     * @description
+     *   - Utilizes separate event loop groups for accepting connections (bossGroup) and handling them (workerGroup).
+     *   - Employs NioServerSocketChannel for non-blocking server channel operations, improving performance.
+     *   - Waits for the server to close the socket channel, ensuring proper shutdown sequence.
+     *   - Logs server start-up, potential errors, and shutdown process for better traceability.
+     */
     public void start() throws InterruptedException {
 
         // Create two EventLoopGroups: one for accepting connections and one for handling them
@@ -54,6 +66,18 @@ public class VayuWebServer {
     }
 
 
+    /**
+     * Initializes a new SocketChannel with the necessary handlers for HTTP processing.
+     * @example
+     * ChannelInitializer<SocketChannel> initializer = createChannelInitializer();
+     * // This initializer can be used within a bootstrap to set up server channels.
+     * @return {ChannelInitializer<SocketChannel>} - A configured ChannelInitializer for handling HTTP server functionality.
+     * @description
+     *   - Installs an HTTP codec to decode incoming requests and encode outgoing responses.
+     *   - Aggregates multiple fragmented HTTP messages into full HTTP requests or responses.
+     *   - Provides handlers for efficient writing of chunked data.
+     *   - Enables compression to reduce the size of HTTP messages for improved network efficiency.
+     */
     private ChannelInitializer<SocketChannel> createChannelInitializer() {
         return new ChannelInitializer<>() {
             @Override
